@@ -69,6 +69,7 @@ namespace Players
 
         public override void SelectManeuver(Action<string> callback, Func<string, bool> filter = null)
         {
+            base.SelectManeuver(callback, filter);
             DirectionsMenu.Show(callback, filter);
         }
 
@@ -105,8 +106,7 @@ namespace Players
                 }
                 else
                 {
-                    GameManagerScript Game = GameObject.Find("GameManager").GetComponent<GameManagerScript>();
-                    Game.Wait(1, subphase.SkipButton);
+                    GameManagerScript.Wait(1, subphase.SkipButton);
                 }
             }
             else
@@ -120,6 +120,12 @@ namespace Players
         {
             base.PerformSystemsActivation();
             UI.ShowSkipButton();
+        }
+
+        public override void InformAboutCrit()
+        {
+            base.InformAboutCrit();
+            InformCrit.ShowConfirmButton();
         }
     }
 

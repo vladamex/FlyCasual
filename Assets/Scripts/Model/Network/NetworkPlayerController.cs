@@ -216,20 +216,6 @@ public partial class NetworkPlayerController : NetworkBehaviour {
         ShipMovementScript.SendAssignManeuverCommand(shipId, maneuverCode);
     }
 
-    // Systems
-
-    [Command]
-    public void CmdActivateSystemsOnShip(int shipId)
-    {
-        RpcActivateSystemsOnShip(shipId);
-    }
-
-    [ClientRpc]
-    private void RpcActivateSystemsOnShip(int shipId)
-    {
-        (Phases.CurrentSubPhase as SystemsSubPhase).ActivateSystemsOnShipClient(Roster.GetShipById("ShipId:" + shipId));
-    }
-
     // BARREL ROLL
 
     [Command]
@@ -402,21 +388,6 @@ public partial class NetworkPlayerController : NetworkBehaviour {
     private void RpcRevertSubPhase()
     {
         (Phases.CurrentSubPhase as SelectShipSubPhase).CallRevertSubPhase();
-    }
-
-    // SELECT OBSTACLE
-
-    [Command]
-    public void CmdSelectObstacle(string obstacleName)
-    {
-        RpcSelectTargetOBstacle(obstacleName);
-    }
-
-    [ClientRpc]
-    private void RpcSelectTargetOBstacle(string obstacleName)
-    {
-        SelectObstacleSubPhase currentSubPhase = (Phases.CurrentSubPhase as SelectObstacleSubPhase);
-        currentSubPhase.ConfirmSelectionOfObstacleClient(obstacleName);
     }
 
     // CONFIRM DICE ROLL CHECK
@@ -685,21 +656,6 @@ public partial class NetworkPlayerController : NetworkBehaviour {
     private void RpcSetSwarmManagerManeuver(string maneuverCode)
     {
         SwarmManager.SetManeuver(maneuverCode);
-    }
-
-    // Combat Activation
-
-    [Command]
-    public void CmdCombatActivation(int shipId)
-    {
-        RpcCombatActivation(shipId);
-    }
-
-    [ClientRpc]
-    private void RpcCombatActivation(int shipId)
-    {
-        Selection.ChangeActiveShip("ShipId:" + shipId);
-        Selection.ThisShip.CallCombatActivation(delegate { (Phases.CurrentSubPhase as CombatSubPhase).ChangeSelectionMode(Team.Type.Enemy); });
     }
 
     // Return To Main Menu

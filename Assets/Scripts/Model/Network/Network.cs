@@ -169,13 +169,6 @@ public static partial class Network
         CurrentPlayer.CmdAssignManeuver(shipId, maneuverCode);
     }
 
-    // SYSTEMS
-
-    public static void ActivateSystemsOnShip(int shipId)
-    {
-        CurrentPlayer.CmdActivateSystemsOnShip(shipId);
-    }
-
     // PERFORM BARREL ROLL
 
     public static void PerformBarrelRoll()
@@ -217,13 +210,6 @@ public static partial class Network
     public static void SelectTargetShip(int targetId)
     {
         CurrentPlayer.CmdSelectTargetShip(targetId);
-    }
-
-    // SELECT OBSTACLE
-
-    public static void SelectObstacle(string obstacleName)
-    {
-        CurrentPlayer.CmdSelectObstacle(obstacleName);
     }
 
     // CONFIRM DICE ROLL CHECK
@@ -553,11 +539,6 @@ public static partial class Network
     public static void SyncDecks(int playerNo, int seed)
     {
         if (IsServer) CurrentPlayer.CmdSyncDecks(playerNo, seed);
-    }
-
-    public static void CombatActivation(int shipId)
-    {
-        CurrentPlayer.CmdCombatActivation(shipId);
     }
 
     public static void StartDiceRerollExecution()

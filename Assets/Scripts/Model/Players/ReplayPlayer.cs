@@ -93,6 +93,7 @@ namespace Players
 
         public override void InformAboutCrit()
         {
+            base.InformAboutCrit();
             GameController.CheckExistingCommands();
         }
 
@@ -104,6 +105,16 @@ namespace Players
         public override void ChangeManeuver(Action<string> callback, Func<string, bool> filter = null)
         {
             Phases.CurrentSubPhase.IsReadyForCommands = true;
+            GameController.CheckExistingCommands();
+        }
+
+        public override void PerformSystemsActivation()
+        {
+            GameController.CheckExistingCommands();
+        }
+
+        public override void SelectObstacleForAbility()
+        {
             GameController.CheckExistingCommands();
         }
     }

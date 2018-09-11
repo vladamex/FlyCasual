@@ -211,19 +211,29 @@ public partial class DiceRoll
 
         this.callBack = callBack;
 
-        if (!Network.IsNetworkGame)
+        if (ReplaysManager.Mode == ReplaysMode.Write)
         {
-            foreach (Die die in DiceList)
+            if (!Network.IsNetworkGame)
             {
-                die.RandomizeRotation();
+                foreach (Die die in DiceList)
+                {
+                    die.RandomizeRotation();
+                }
+                RollPreparedDice();
             }
-            RollPreparedDice();
+            else
+            {
+                if (DebugManager.DebugNetwork) UI.AddTestLogEntry("DiceRoll.Roll");
+                Network.GenerateRandom(new Vector2(0, 360), DiceList.Count * 3, SetDiceInitialRotation, RollPreparedDice);
+            }
         }
         else
         {
-            if (DebugManager.DebugNetwork) UI.AddTestLogEntry("DiceRoll.Roll");
-            Network.GenerateRandom(new Vector2(0, 360), DiceList.Count * 3, SetDiceInitialRotation, RollPreparedDice);
+            Phases.CurrentSubPhase.IsReadyForCommands = true;
+
+            Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer).SyncDiceResults();
         }
+        
     }
 
     private void SetDiceInitialRotation(int[] randomHolder)
@@ -298,21 +308,31 @@ public partial class DiceRoll
     {
         this.callBack = callBack;
 
-        if (!Network.IsNetworkGame)
+        if (ReplaysManager.Mode == ReplaysMode.Write)
         {
-            foreach (Die die in DiceList)
+            if (!Network.IsNetworkGame)
             {
-                if (die.IsSelected)
+                foreach (Die die in DiceList)
                 {
-                    die.RandomizeRotation();
+                    if (die.IsSelected)
+                    {
+                        die.RandomizeRotation();
+                    }
                 }
+                RerollPreparedDice();
             }
-            RerollPreparedDice();
+            else
+            {
+                if (DebugManager.DebugNetwork) UI.AddTestLogEntry("DiceRoll.SyncSelectedDice");
+                Network.SyncSelectedDiceAndReroll();
+            }
         }
         else
         {
-            if (DebugManager.DebugNetwork) UI.AddTestLogEntry("DiceRoll.SyncSelectedDice");
-            Network.SyncSelectedDiceAndReroll();
+            CurrentDiceRoll.DeselectDice();
+
+            Phases.CurrentSubPhase.IsReadyForCommands = true;
+            Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer).SyncDiceResults();
         }
     }
 
@@ -358,8 +378,13 @@ public partial class DiceRoll
         {
             changedDiceCount += ChangeDice(oldSide, newSide, false, cannotBeRerolled, cannotBeModified);
         }
-        else for (int i = 0; i < count; i++) {
-            changedDiceCount += ChangeDice (oldSide, newSide, true, cannotBeRerolled, cannotBeModified);
+        else
+        {
+            count = Math.Min(count, DiceList.Count(n => n.Side == oldSide));
+            for (int i = 0; i < count; i++)
+            {
+                changedDiceCount += ChangeDice(oldSide, newSide, true, cannotBeRerolled, cannotBeModified);
+            }
 		}
 
 		UpdateDiceCompareHelperPrediction();
@@ -544,10 +569,8 @@ public partial class DiceRoll
     {
         isRolling = true;
 
-        // TODO: Rewrite
-        GameManagerScript Game = GameObject.Find("GameManager").GetComponent<GameManagerScript>();
-        Game.Wait(1, StartWaitingForFinish);
-        Game.Wait(5, CalculateWaitedResults);
+        GameManagerScript.Wait(1, StartWaitingForFinish);
+        GameManagerScript.Wait(5, CalculateWaitedResults);
     }
 
     private void StartWaitingForFinish()
@@ -617,6 +640,9 @@ public partial class DiceRoll
         for (int i = 0; i < DiceRoll.CurrentDiceRoll.DiceList.Count; i++)
         {
             Die die = DiceRoll.CurrentDiceRoll.DiceList[i];
+
+            if (die.Model == null) die.ShowWithoutRoll();
+
             if (die.Side != sides[i])
             {
                 die.SetSide(sides[i]);
@@ -628,7 +654,7 @@ public partial class DiceRoll
 
         if (wasFixed) DiceRoll.CurrentDiceRoll.OrganizeDicePositions();
 
-        CurrentDiceRoll.ExecuteCallback();
+        ReplaysManager.ExecuteWithDelay(CurrentDiceRoll.ExecuteCallback);
     }
 
     public void ExecuteCallback()
