@@ -9,7 +9,7 @@ namespace Migrations
 {
     namespace MigrationsList
     {
-        public class Migration_100060200 : GenericMigration
+        /*public class Migration_100060200 : GenericMigration
         {
             public Migration_100060200()
             {
@@ -19,9 +19,11 @@ namespace Migrations
                 {
                     new CardInfo(typeof(Ship.Aggressor.IG88A), typeof(SecondEdition)),
                     new CardInfo(typeof(Ship.StarViper.Guri), typeof(SecondEdition)),
-                    new CardInfo(typeof(Ship.G1AStarfighter.P4LOM), typeof(SecondEdition))
+                    new CardInfo(typeof(Ship.G1AStarfighter.P4LOM), typeof(SecondEdition)),
+                    new CardInfo(typeof(Ship.TIEFighter.MaulerMithel), typeof(SecondEdition)),
+                    new CardInfo(typeof(Ship.ProtectorateStarfighter.SkullSquadronPilot), typeof(SecondEdition))
                 };
             }
-        }
+        }*/
     }
 }
