@@ -11,10 +11,12 @@ public enum TriggerTypes
 
     OnGameStart,
     OnSetupStart,
+    OnSetupEnd,
     OnInitiativeSelection,
     OnShipIsPlaced,
     OnRoundStart,
     OnPlanningSubPhaseStart,
+    OnSystemsPhaseStart,
     OnActionSubPhaseStart,
     OnActionDecisionSubPhaseEnd,
     OnActivationPhaseStart,
@@ -56,8 +58,10 @@ public enum TriggerTypes
     OnShotStart,
     OnImmediatelyAfterRolling,
     OnImmediatelyAfterReRolling,
+    OnDefenseStart,
     OnShotHit,
     OnTryDamagePrevention,
+    OnAfterNeutralizeResults,
     OnAttackHit,
     OnAttackMissed,
     OnAttackFinish,
@@ -87,7 +91,10 @@ public enum TriggerTypes
     OnDiceAboutToBeRolled,
     OnAfterDiscard,
     OnAfterFlipFaceUp,
-    OnSystemsAbilityActivation
+    OnSystemsAbilityActivation,
+
+    OnBombWasDropped,
+    OnBombWasLaunched
 }
 
 public class Trigger

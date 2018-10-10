@@ -147,7 +147,7 @@ namespace Abilities
         /// <summary>
         /// Shows "Take a decision" window for ability with Yes / No / [Always] buttons
         /// </summary>
-        protected void AskToUseAbility(Func<bool> useByDefault, EventHandler useAbility, EventHandler dontUseAbility = null, Action callback = null, bool showAlwaysUseOption = false, string infoText = null)
+        protected void AskToUseAbility(Func<bool> useByDefault, EventHandler useAbility, EventHandler dontUseAbility = null, Action callback = null, bool showAlwaysUseOption = false, string infoText = null, bool showSkipButton = true)
         {
             if (dontUseAbility == null) dontUseAbility = DontUseAbility;
 
@@ -169,9 +169,36 @@ namespace Abilities
 
             pilotAbilityDecision.DefaultDecisionName = (useByDefault()) ? "Yes" : "No";
 
-            pilotAbilityDecision.ShowSkipButton = true;
+            pilotAbilityDecision.ShowSkipButton = showSkipButton;
 
             pilotAbilityDecision.Start();
+        }
+
+        /// <summary>
+        /// Shows "Take a decision" window for ability with Yes / No buttons to Opponent
+        /// </summary>
+        protected void AskOpponent(Func<bool> aiUseByDefault, EventHandler useAbility, EventHandler dontUseAbility = null, string infoText = null, bool showSkipButton = true)
+        {
+            if (dontUseAbility == null) dontUseAbility = DontUseAbility;
+
+            DecisionSubPhase opponentDecision = (DecisionSubPhase)Phases.StartTemporarySubPhaseNew(
+                Name,
+                typeof(AbilityDecisionSubphase),
+                Triggers.FinishTrigger
+            );
+
+            opponentDecision.InfoText = infoText ?? "Allow to use " + Name + "?";
+
+            opponentDecision.RequiredPlayer = Roster.AnotherPlayer(HostShip.Owner.PlayerNo);
+
+            opponentDecision.AddDecision("Yes", useAbility);
+            opponentDecision.AddDecision("No", dontUseAbility);
+
+            opponentDecision.DefaultDecisionName = (aiUseByDefault()) ? "Yes" : "No";
+
+            opponentDecision.ShowSkipButton = showSkipButton;
+
+            opponentDecision.Start();
         }
 
         private class AbilityDecisionSubphase : DecisionSubPhase { }
@@ -381,7 +408,8 @@ namespace Abilities
         protected enum DiceModificationType
         {
             Reroll,
-            Change
+            Change,
+            Cancel
         }
 
         private GenericShip.EventHandlerShip DiceModification;
@@ -389,7 +417,7 @@ namespace Abilities
         /// <summary>
         /// Adds available dice modification
         /// </summary>
-        protected void AddDiceModification(string name, Func<bool> isAvailable, Func<int> aiPriority, DiceModificationType modificationType, int count, List<DieSide> sidesCanBeSelected = null, DieSide sideCanBeChangedTo = DieSide.Unknown, DiceModificationTimingType timing = DiceModificationTimingType.Normal, bool isGlobal = false, Action<Action<bool>> payAbilityCost = null)
+        protected void AddDiceModification(string name, Func<bool> isAvailable, Func<int> aiPriority, DiceModificationType modificationType, int count, List<DieSide> sidesCanBeSelected = null, DieSide sideCanBeChangedTo = DieSide.Unknown, DiceModificationTimingType timing = DiceModificationTimingType.Normal, bool isGlobal = false, Action<Action<bool>> payAbilityCost = null, Action payAbilityPostCost = null, bool isTrueReroll = true)
         {
             AddDiceModification(
                 name,
@@ -401,14 +429,16 @@ namespace Abilities
                 sideCanBeChangedTo,
                 timing,
                 isGlobal, 
-                payAbilityCost
+                payAbilityCost,
+                payAbilityPostCost,
+                isTrueReroll
             );
         }
 
         /// <summary>
         /// Adds available dice modification
         /// </summary>
-        protected void AddDiceModification(string name, Func<bool> isAvailable, Func<int> aiPriority, DiceModificationType modificationType, Func<int> getCount, List<DieSide> sidesCanBeSelected = null, DieSide sideCanBeChangedTo = DieSide.Unknown, DiceModificationTimingType timing = DiceModificationTimingType.Normal, bool isGlobal = false, Action<Action<bool>> payAbilityCost = null)
+        protected void AddDiceModification(string name, Func<bool> isAvailable, Func<int> aiPriority, DiceModificationType modificationType, Func<int> getCount, List<DieSide> sidesCanBeSelected = null, DieSide sideCanBeChangedTo = DieSide.Unknown, DiceModificationTimingType timing = DiceModificationTimingType.Normal, bool isGlobal = false, Action<Action<bool>> payAbilityCost = null, Action payAbilityPostCost = null, bool isTrueReroll = true)
         {
             if (sidesCanBeSelected == null) sidesCanBeSelected = new List<DieSide>() { DieSide.Blank, DieSide.Focus, DieSide.Success, DieSide.Crit };
 
@@ -427,10 +457,25 @@ namespace Abilities
                     DoDiceModification = (Action callback) =>
                     {
                         if (payAbilityCost == null) payAbilityCost = payCallback => payCallback(true);
-                        
+
                         payAbilityCost(success =>
                         {
-                            if (success) GenericDiceModification(callback, modificationType, getCount, sidesCanBeSelected, sideCanBeChangedTo, timing);
+                            if (success)
+                            {
+                                GenericDiceModification(
+                                    delegate
+                                    {
+                                        if (payAbilityPostCost != null) payAbilityPostCost();
+                                        callback();
+                                    },
+                                    modificationType,
+                                    getCount,
+                                    sidesCanBeSelected,
+                                    sideCanBeChangedTo,
+                                    timing,
+                                    isTrueReroll
+                                );
+                            }
                             else callback();
                         });
                     },
@@ -483,15 +528,18 @@ namespace Abilities
 
         protected class CustomDiceModification : GenericAction { }
 
-        private void GenericDiceModification(Action callback, DiceModificationType modificationType, Func<int> getCount, List<DieSide> sidesCanBeSelected, DieSide newSide, DiceModificationTimingType timing)
+        private void GenericDiceModification(Action callback, DiceModificationType modificationType, Func<int> getCount, List<DieSide> sidesCanBeSelected, DieSide newSide, DiceModificationTimingType timing, bool isTrueReroll)
         {
             switch (modificationType)
             {
                 case DiceModificationType.Reroll:
-                    DiceModificationReroll(callback, getCount, sidesCanBeSelected, timing);
+                    DiceModificationReroll(callback, getCount, sidesCanBeSelected, timing, isTrueReroll);
                     break;
                 case DiceModificationType.Change:
                     DiceModificationChange(callback, getCount, sidesCanBeSelected, newSide);
+                    break;
+                case DiceModificationType.Cancel:
+                    DiceModificationCancel(callback, sidesCanBeSelected, timing);
                     break;
                 default:
                     break;
@@ -523,7 +571,7 @@ namespace Abilities
             }
         }
 
-        private void DiceModificationReroll(Action callback, Func<int> getCount, List<DieSide> sidesCanBeSelected, DiceModificationTimingType timing)
+        private void DiceModificationReroll(Action callback, Func<int> getCount, List<DieSide> sidesCanBeSelected, DiceModificationTimingType timing, bool isTrueReroll)
         {
             int diceCount = getCount();
 
@@ -534,6 +582,7 @@ namespace Abilities
                     NumberOfDiceCanBeRerolled = diceCount,
                     SidesCanBeRerolled = sidesCanBeSelected,
                     IsOpposite = timing == DiceModificationTimingType.Opposite,
+                    IsTrueReroll = isTrueReroll,
                     CallBack = callback
                 };
                 diceRerollManager.Start();
@@ -543,6 +592,19 @@ namespace Abilities
                 Messages.ShowErrorToHuman("0 dice can be rerolled");
                 callback();
             }
+        }
+
+        private void DiceModificationCancel(Action callback, List<DieSide> sidesCanBeSelected, DiceModificationTimingType timing)
+        {
+            List<Die> diceToCancel = DiceRoll.CurrentDiceRoll.DiceList.Where(d => sidesCanBeSelected.Contains(d.Side)).ToList();
+
+            foreach (Die die in diceToCancel)
+            {
+                DiceRoll.CurrentDiceRoll.DiceList.Remove(die);
+                die.RemoveModel();
+            }
+
+            //DiceRoll.CurrentDiceRoll.OrganizeDicePositions();
         }
 
         /// <summary>

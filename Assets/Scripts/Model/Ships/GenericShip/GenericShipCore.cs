@@ -59,7 +59,7 @@ namespace Ship
             }
         }
         
-        public string PilotName { get; protected set; }
+        public string PilotName { get; set; }
         public string PilotNameShort { get; protected set; }
         public bool IsUnique { get; protected set; }
 
@@ -166,7 +166,7 @@ namespace Ship
                 result = Mathf.Clamp(result, 0, 12);
                 return result;
             }
-            protected set
+            set
             {
                 value = Mathf.Clamp(value, 0, 12);
                 pilotSkill = value;
@@ -469,19 +469,26 @@ namespace Ship
         public bool UsesCharges;
         public bool RegensCharges = false;
 
-        public void SpendCharge(Action callBack)
+        public void SpendCharges(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                SpendCharge();
+            }
+        }
+
+        public void SpendCharge()
         {
             Charges--;
 
             if (Charges < 0) throw new InvalidOperationException("Cannot spend charge when you have none left");
-
-            callBack();
         }
 
         public void RemoveCharge(Action callBack)
         {
             // for now this is just an alias of SpendCharge
-            SpendCharge(callBack);
+            SpendCharge();
+            callBack();
         }
 
         public void RestoreCharge()

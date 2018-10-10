@@ -119,7 +119,8 @@ namespace SubPhases
             Board.TurnOffStartingZones();
             Board.ToggleDiceHolders(true);
             Board.ToggleOffTheBoardHolder(true);
-            Phases.NextPhase();
+
+            Phases.Events.CallSetupEnd(Phases.NextPhase);
         }
 
         public override bool ThisShipCanBeSelected(GenericShip ship, int mouseKeyIsPressed)
@@ -249,7 +250,7 @@ namespace SubPhases
             isInsideStartingZone = false;
             Roster.SetRaycastTargets(false);
             Roster.AllShipsHighlightOff();
-            Board.HighlightStartingZones();
+            Board.HighlightStartingZones(Phases.CurrentSubPhase.RequiredPlayer);
             Selection.ThisShip.Model.GetComponentInChildren<ObstaclesStayDetector>().checkCollisions = true;
             inReposition = true;
         }
